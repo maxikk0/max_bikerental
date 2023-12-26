@@ -1,7 +1,11 @@
 local coordsPos = Config.Coords
-local playerPed = PlayerPedId()
 local onFoot, coords = nil, vector3(0, 0, 0)
 local cooldown = false
+
+local playerPed = PlayerPedId()
+AddEventHandler("playerSpawned", function()  
+    playerPed = PlayerPedId()
+end)
 
 Citizen.CreateThread(function()
     while true do
@@ -10,7 +14,7 @@ Citizen.CreateThread(function()
     end
 end)
 
-Citizen.CreateThread(function() -- Drawing 3D Text
+Citizen.CreateThread(function()
     while true do
         Citizen.Wait(0)
         local sleep = true
@@ -25,13 +29,14 @@ Citizen.CreateThread(function() -- Drawing 3D Text
                 end
             end
         end
-        if sleep then 
+
+        if sleep then
             Citizen.Wait(1000)
         end
     end
 end)
 
-Citizen.CreateThread(function() -- Spawning vehicle
+Citizen.CreateThread(function()
     while true do
         Citizen.Wait(0)
         local sleep = true
@@ -52,6 +57,7 @@ Citizen.CreateThread(function() -- Spawning vehicle
                 end
             end
         end
+
         if sleep then
             Citizen.Wait(1000)
         end
