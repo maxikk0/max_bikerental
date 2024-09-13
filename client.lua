@@ -1,113 +1,92 @@
-local coordsPos = Config.Coords
-local onFoot, coords = nil, vector3(0, 0, 0)
+-- // Variables
+
 local cooldown = false
 
-local playerPed = PlayerPedId()
-AddEventHandler("playerSpawned", function()  
-    playerPed = PlayerPedId()
-end)
+-- // Main stuff
 
 Citizen.CreateThread(function()
-    while true do
-        coords = GetEntityCoords(playerPed)
-        Citizen.Wait(500)
-    end
-end)
+    while true do    
+        local sleep = 1000
+    
+        for _, location in ipairs(Config.Locations) do
+            local distance = #(GetEntityCoords(PlayerPedId()) - vector3(location.Coords.x, location.Coords.y, location.Coords.z))
 
-Citizen.CreateThread(function()
-    while true do
-        Citizen.Wait(0)
-        local sleep = true
-        local isPlayerInVehicle = IsPedInAnyVehicle(playerPed)
-
-        for _, coordsPos in ipairs(Config.Coords) do
-            local distance = #(coords - vector3(coordsPos.x, coordsPos.y, coordsPos.z))
             if distance <= 10 then
-                sleep = false
-                if distance <= 1.5 and not isPlayerInVehicle and not cooldown then
-                    Draw3DText(coordsPos.x, coordsPos.y, coordsPos.z, Config.Text, 0.65)
+                sleep = 0
+                if distance <= 2.5 then
+                    Draw3DText(location.Coords.x, location.Coords.y, location.Coords.z, Config.Text, 0.65)
+
+                    if IsControlJustReleased(0, Config.Key) then
+                        RequestModel(location.CarModel)
+                        while not HasModelLoaded(location.CarModel) do
+                          Wait(0)
+                        end
+
+                        local vehicle = CreateVehicle(location.CarModel, vector3(location.Coords.x, location.Coords.y - 2.5, location.Coords.z), location.Heading, true, false)
+
+                        TaskWarpPedIntoVehicle(PlayerPedId(), vehicle, -1)
+
+                        cooldown = true
+                        Citizen.Wait(Config.Cooldown * 1000)
+                        cooldown = false
+                    end
                 end
             end
         end
 
-        if sleep then
-            Citizen.Wait(1000)
-        end
+        Citizen.Wait(sleep)
     end
 end)
 
-Citizen.CreateThread(function()
-    while true do
-        Citizen.Wait(0)
-        local sleep = true
-        for _, coordsPos in ipairs(Config.Coords) do
-            local distance = #(coords - vector3(coordsPos.x, coordsPos.y, coordsPos.z))
-            if distance <= 10 then
-                sleep = false
-                if distance <= 1.5 and IsControlJustReleased(0, Config.Key) and not cooldown then
-                    ESX.Game.SpawnVehicle(Config.CarModel, vector3(coordsPos.x, coordsPos.y-1.0, coordsPos.z), 265.0, function(vehicle)
-                        TaskWarpPedIntoVehicle(playerPed, vehicle, -1)
-                    end)
+-- // 3D Text drawing
 
-                    ESX.ShowNotification(Config.NotifyText)
+function Draw3DText(x, y, z, text, scale)
+    local onScreen, _x, _y = World3dToScreen2d(x, y, z)
+    local camCoords = GetGameplayCamCoords()
 
-                    cooldown = true
-                    Citizen.Wait(Config.Cooldown * 1000)
-                    cooldown = false
-                end
-            end
-        end
-
-        if sleep then
-            Citizen.Wait(1000)
-        end
-    end
-end)
-
-function Draw3DText(x,y,z,text,scale) -- Function to draw 3D Text
-    local OnScreen, _x, _y = World3dToScreen2d(x,y,z)
-    local pX,pY,pZ = table.unpack(GetGameplayCamCoords())
     SetTextScale(scale, scale)
     SetTextFont(4)
     SetTextProportional(1)
     SetTextCentre(1)
     SetTextColour(255, 255, 255, 255)
     SetTextDropShadow(0, 0, 0, 0, 255)
-    SetTextDropShadow()
     SetTextOutline()
+
     SetTextEntry("STRING")
     AddTextComponentString(text)
-    DrawText(_x,_y)
-    SetTextOutline()
+    DrawText(_x, _y)
 end
 
--- BLIPS
-Citizen.CreateThread(function()
-    for _, coordsPos in ipairs(Config.Coords) do
-        local blip = AddBlipForCoord(coordsPos.x, coordsPos.y, coordsPos.z)
+-- // Blips
 
-        SetBlipSprite(blip, Config.BlipSprite)  -- Change the blip sprite as needed
-        SetBlipScale(blip, Config.BlipScale)
-        SetBlipColour(blip, Config.BlipColor)
+Citizen.CreateThread(function()
+    for _, location in ipairs(Config.Locations) do
+        local blip = AddBlipForCoord(location.Coords.x, location.Coords.y, location.Coords.z)
+
+        SetBlipSprite(blip, location.Blip.Sprite)
+        SetBlipScale(blip, location.Blip.Scale)
+        SetBlipColour(blip, location.Blip.Color)
         SetBlipAsShortRange(blip, true)
 
         BeginTextCommandSetBlipName("STRING")
-        AddTextComponentString(Config.BlipName)
+        AddTextComponentString(location.Blip.Name)
         EndTextCommandSetBlipName(blip)
     end
 end)
 
--- PEDS
+-- // Creating ped
+
 Citizen.CreateThread(function()
-    for _, coordsPos in ipairs(Config.Coords) do
-        local hash = GetHashKey(Config.PedModel)
-        RequestModel(hash)
-
-        while not HasModelLoaded(hash) do
-            Citizen.Wait(1)
+    for _, location in ipairs(Config.Locations) do
+        local pedModel = GetHashKey(location.PedModel)
+        
+        RequestModel(pedModel)
+        while not HasModelLoaded(pedModel) do
+            Citizen.Wait(500)
         end
-
-        ped = CreatePed(4, hash, coordsPos.x, coordsPos.y, coordsPos.z-1.0, coordsPos.heading, true, false)
+        
+        local ped = CreatePed(4, pedModel, location.Coords.x, location.Coords.y, location.Coords.z - 1.0, location.Coords.heading, true, false)
+        
         SetEntityInvincible(ped, true)
         FreezeEntityPosition(ped, true)
         SetPedCanRagdollFromPlayerImpact(ped, false)

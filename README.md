@@ -4,6 +4,7 @@ A simple script for renting bikes, are you on the server for the first time and 
 
 # Features
 - Fully customizable
+- Fully standalone
 - Optimalization
 
 ## How is this work?
@@ -17,6 +18,3 @@ A simple script for renting bikes, are you on the server for the first time and 
 
 ### Made by maxik#1234
 ### You can edit this script, but do NOT take it as yours, republish it, resell it.
- 
-## Dependencies
-* [ESX](https://github.com/esx-framework/esx-legacy.git)
